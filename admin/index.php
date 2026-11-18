@@ -56,11 +56,14 @@ if (!$user) {
     }
     $noUsers = empty(config('admin_users'));
     ?><!DOCTYPE html><html lang="sk"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Prihlásenie – Darčekový poradca</title>
-    <style>body{font-family:system-ui,sans-serif;background:#f6f3ef;display:grid;place-items:center;min-height:100vh;margin:0;color:#4a4339}
-    form{background:#fff;padding:32px;border-radius:16px;box-shadow:0 20px 50px -25px rgba(0,0,0,.3);width:320px}h1{font-size:20px;margin:0 0 4px;color:#1aa595}
-    p{margin:0 0 18px;font-size:13px;color:#8a8175}input{width:100%;box-sizing:border-box;padding:11px 12px;border:1px solid #e3dcd3;border-radius:8px;margin:6px 0 12px;font:inherit}
-    button{width:100%;padding:11px;border:0;border-radius:8px;background:#ef7b84;color:#fff;font-weight:700;font-size:15px;cursor:pointer}.err{color:#b93a3a;font-size:13px}</style></head><body>
-    <form method="post"><h1>🎁 Darčekový poradca</h1><p>Admin noelo.sk</p>
+    <style>*{box-sizing:border-box}body{font-family:"Segoe UI",system-ui,sans-serif;background:#f5f2ef;display:grid;place-items:center;min-height:100vh;margin:0;color:#685f52}
+    form{background:#fff;padding:44px 40px 36px;border-radius:20px;box-shadow:0 8px 40px rgba(160,146,134,.15);width:100%;max-width:400px;text-align:center}
+    form img{height:60px;width:auto}.bdg{display:inline-block;background:linear-gradient(135deg,#ef7b84,#00d4c5);color:#fff;font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;padding:3px 10px;border-radius:999px;margin:10px 0 26px}
+    label{display:block;text-align:left;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.05em;color:#a09286;margin-bottom:6px}
+    input{width:100%;padding:11px 14px;border:1.5px solid #dfe8ea;background:#ebf8fb;border-radius:10px;margin:6px 0 14px;font:inherit;font-size:14px;color:#685f52;outline:none;text-transform:none;letter-spacing:0}input:focus{border-color:#00d4c5;box-shadow:0 0 0 3px rgba(0,212,197,.12)}
+    button{width:100%;padding:12px;border:0;border-radius:10px;background:linear-gradient(135deg,#ef7b84,#e06870);color:#fff;font-weight:700;font-size:14px;cursor:pointer;margin-top:6px}button:hover{opacity:.92}
+    p{margin:0 0 16px;font-size:13px;color:#a09286}.err{background:rgba(229,62,62,.08);border:1px solid rgba(229,62,62,.2);color:#e53e3e;border-radius:8px;padding:10px 14px;text-align:left}</style></head><body>
+    <form method="post"><img src="https://noelo.sk/img/design/logo-new-v2-sk.png" alt="Noelo.sk"><br><span class="bdg">Darčekový poradca</span>
     <?php if ($noUsers): ?><p class="err">V config.php nie je nastavený žiadny používateľ (admin_users).</p><?php endif; ?>
     <?php if ($err): ?><p class="err"><?= h($err) ?></p><?php endif; ?>
     <label>Meno<input name="user" autocomplete="username" required></label><label>Heslo<input name="pass" type="password" autocomplete="current-password" required></label><button>Prihlásiť</button></form></body></html><?php
@@ -192,35 +195,42 @@ function bar_list(array $data, string $color = '#22c4b2'): string
 <html lang="sk"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title><?= h($nav[$navKey][1] ?? 'Admin') ?> – Darčekový poradca</title>
 <style>
-:root{--teal:#22c4b2;--teal-d:#16a594;--pink:#ef7b84;--pink-d:#e2646e;--txt:#4a4339;--muted:#8a8175;--line:#ece6de;--bg:#f6f3ef;--card:#fff;--warn:#fff4e5;--warn-b:#f1c27d}
-*{box-sizing:border-box}body{margin:0;font:14px/1.5 system-ui,-apple-system,"Segoe UI",sans-serif;color:var(--txt);background:var(--bg)}
+:root{--teal:#00d4c5;--teal-d:#00a99d;--pink:#ef7b84;--pink-d:#e06970;--txt:#685f52;--muted:#a09286;--line:#dfe8ea;--bg:#f5f2ef;--card:#fff;--lt:#ebf8fb;--warn:#fff4e5;--warn-b:#f1c27d}
+*{box-sizing:border-box}body{margin:0;font:13px/1.5 "Segoe UI",system-ui,-apple-system,sans-serif;color:var(--txt);background:var(--bg)}
 a{color:var(--teal-d);text-decoration:none}a:hover{text-decoration:underline}
-.layout{display:grid;grid-template-columns:240px 1fr;min-height:100vh}
-aside{background:#2f2b26;color:#e9e4dc;padding:20px 14px;position:sticky;top:0;height:100vh}
-aside .brand{font-weight:800;font-size:17px;padding:4px 10px 18px;color:#fff}aside .brand small{display:block;font-weight:400;font-size:12px;color:#b9b0a4}
-aside nav a{display:flex;gap:10px;padding:9px 10px;border-radius:8px;color:#e9e4dc;margin-bottom:2px}aside nav a:hover{background:#3d3832;text-decoration:none}
-aside nav a.on{background:var(--teal);color:#fff}aside .foot{position:absolute;bottom:18px;left:24px;font-size:12px;color:#b9b0a4}aside .foot a{color:#fff}
-main{padding:26px 32px 60px;max-width:1240px}
-h1{font-size:23px;margin:0 0 4px}h2{font-size:16px;margin:0 0 12px}.sub{color:var(--muted);margin:0 0 20px}
+.layout{min-height:100vh}
+nav.top{position:sticky;top:0;z-index:100;background:#fff;border-bottom:3px solid var(--lt);box-shadow:0 3px 16px rgba(0,212,197,.12);padding:0 20px}
+.nav-in{max-width:1440px;margin:0 auto;display:flex;align-items:center;gap:6px;min-height:58px;flex-wrap:wrap}
+.nav-logo{display:flex;align-items:center;gap:10px;margin-right:10px;padding:4px 0;flex-shrink:0}.nav-logo:hover{text-decoration:none}.nav-logo img{height:38px;width:auto;max-width:none;flex-shrink:0;display:block}
+.nav-badge{background:linear-gradient(135deg,var(--pink),var(--teal));color:#fff;font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;padding:3px 8px;border-radius:6px;white-space:nowrap}
+.nav-div{width:1px;height:24px;background:var(--line);margin:0 6px;flex-shrink:0}
+.nav-links{display:flex;gap:4px;flex-wrap:wrap}
+.nav-links a{padding:6px 12px;border-radius:8px;font-size:12px;color:var(--muted);white-space:nowrap;transition:all .15s}.nav-links a:hover{color:var(--txt);background:var(--lt);text-decoration:none}
+.nav-links a.on{color:#fff;background:var(--pink)}
+.nav-user{margin-left:auto;font-size:11px;color:var(--muted);white-space:nowrap}.nav-user a{margin-left:8px;padding:5px 10px;border:1px solid var(--line);border-radius:8px;color:var(--muted)}.nav-user a:hover{color:var(--teal-d);border-color:var(--teal);text-decoration:none}
+main{padding:24px 20px 60px;max-width:1440px;margin:0 auto}
+h1{font-size:20px;font-weight:700;margin:0 0 4px}h2{font-size:16px;font-weight:700;margin:0 0 12px}.sub{color:var(--muted);margin:0 0 20px}
 .flash{background:#e6f8f5;border:1px solid #b5ebe3;padding:10px 14px;border-radius:10px;margin-bottom:16px}
-.info{background:#eef5ff;border:1px solid #c6d9f5;padding:10px 14px;border-radius:10px;margin-bottom:16px}.b-demo{background:#f1ece5;color:#8a8175}
+.info{background:var(--lt);border:1px solid var(--line);padding:10px 14px;border-radius:10px;margin-bottom:16px}.b-demo{background:#f1ece5;color:#a09286}
 .warn{background:var(--warn);border:1px solid var(--warn-b);padding:10px 14px;border-radius:10px;margin-bottom:16px}
-.grid{display:grid;gap:16px}.g4{grid-template-columns:repeat(4,1fr)}.g3{grid-template-columns:repeat(3,1fr)}.g2{grid-template-columns:repeat(2,1fr)}
-@media(max-width:1100px){.g4{grid-template-columns:repeat(2,1fr)}.g3,.g2{grid-template-columns:1fr}.layout{grid-template-columns:1fr}aside{position:static;height:auto}aside .foot{position:static;margin-top:12px}}
-.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:18px}
-.kpi .v{font-size:28px;font-weight:800;line-height:1.1}.kpi .l{color:var(--muted);font-size:13px}.kpi .s{font-size:12px;color:var(--muted);margin-top:4px}
-.tabs{display:flex;gap:6px;margin-bottom:18px}.tabs a{padding:6px 12px;border-radius:999px;background:#fff;border:1px solid var(--line);color:var(--txt)}.tabs a.on{background:var(--txt);color:#fff;border-color:var(--txt)}
+.grid{display:grid;gap:14px}.g4{grid-template-columns:repeat(4,1fr)}.g3{grid-template-columns:repeat(3,1fr)}.g2{grid-template-columns:repeat(2,1fr)}
+@media(max-width:1100px){.g4{grid-template-columns:repeat(2,1fr)}.g3,.g2{grid-template-columns:1fr}.nav-user{margin-left:0}}
+.card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:18px;box-shadow:0 1px 4px rgba(104,95,82,.06)}
+.kpi{border-left:3px solid var(--pink)}.grid>.kpi:nth-child(4n+2){border-left-color:var(--teal)}.grid>.kpi:nth-child(4n+3){border-left-color:#276749}.grid>.kpi:nth-child(4n+4){border-left-color:#dd6b20}
+.kpi .v{font-size:24px;font-weight:700;line-height:1.1}.kpi .l{color:var(--muted);font-size:11px;text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px}.kpi .s{font-size:11px;color:var(--muted);margin-top:4px}
+.tabs{display:flex;gap:4px;margin-bottom:18px}.tabs a{padding:6px 14px;border-radius:8px;background:#fff;border:1px solid var(--line);color:var(--muted);font-size:12px;font-weight:500}.tabs a:hover{color:var(--txt);border-color:var(--teal);background:var(--lt);text-decoration:none}.tabs a.on{background:var(--pink);color:#fff;border-color:var(--pink)}
 .bars{display:flex;flex-direction:column;gap:7px}.bar-row{display:grid;grid-template-columns:120px 1fr 70px;gap:10px;align-items:center;font-size:13px}
 .bt{height:10px;background:#f1ece5;border-radius:6px;overflow:hidden}.bt i{display:block;height:100%;border-radius:6px}.bv{text-align:right;font-weight:600}.bv small{color:var(--muted);font-weight:400}
-.chips{display:flex;flex-wrap:wrap;gap:6px}.chip{background:#eefaf8;color:var(--teal-d);border-radius:999px;padding:3px 10px;font-size:13px}.chip b{margin-left:4px}
-table{width:100%;border-collapse:collapse}th,td{text-align:left;padding:9px 10px;border-bottom:1px solid var(--line);vertical-align:middle}th{font-size:12px;text-transform:uppercase;letter-spacing:.04em;color:var(--muted);font-weight:600}
-tr:hover td{background:#fcfaf7}.num{text-align:right;white-space:nowrap}
+.chips{display:flex;flex-wrap:wrap;gap:6px}.chip{background:var(--lt);color:var(--teal-d);border-radius:999px;padding:2px 10px;font-size:11px;font-weight:600}.chip b{margin-left:4px}
+table{width:100%;border-collapse:collapse}th,td{text-align:left;padding:9px 12px;border-bottom:1px solid var(--line);vertical-align:middle}th{background:var(--lt);font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);font-weight:600;white-space:nowrap}
+tr:hover td{background:rgba(0,212,197,.05)}.num{text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums}
 .thumb{width:44px;height:44px;object-fit:contain;border-radius:8px;background:#fff;border:1px solid var(--line)}
 .badge{display:inline-block;padding:2px 8px;border-radius:999px;font-size:12px;font-weight:600;white-space:nowrap}
 .b-boost{background:#fff0d9;color:#a6620b}.b-ex{background:#f4e1e1;color:#a33}.b-ok{background:#e6f8f5;color:var(--teal-d)}.b-un{background:#fde8ea;color:#b4434e}.b-mute{background:#f1ece5;color:var(--muted)}
-.btn{display:inline-block;border:0;border-radius:8px;padding:8px 14px;font:600 13px system-ui,sans-serif;cursor:pointer;background:var(--teal);color:#fff}
-.btn:hover{background:var(--teal-d);text-decoration:none}.btn.pink{background:var(--pink)}.btn.ghost{background:#fff;color:var(--txt);border:1px solid var(--line)}.btn.sm{padding:5px 10px;font-size:12px}
-form.inline{display:inline}input[type=text],input[type=search],input[type=date],input[type=number],select,textarea{font:inherit;padding:8px 10px;border:1px solid #e0d8ce;border-radius:8px;background:#fff;color:var(--txt)}
+.btn{display:inline-block;border:1px solid var(--pink);border-radius:8px;padding:7px 14px;font:600 12px "Segoe UI",system-ui,sans-serif;cursor:pointer;background:var(--pink);color:#fff;transition:all .15s}
+.btn:hover{background:var(--pink-d);border-color:var(--pink-d);text-decoration:none}.btn.pink{background:var(--pink)}.btn.ghost{background:#fff;color:var(--muted);border:1px solid var(--line)}.btn.ghost:hover{color:var(--teal-d);border-color:var(--teal);background:var(--lt)}.btn.sm{padding:5px 10px;font-size:11px}
+form.inline{display:inline}input[type=text],input[type=search],input[type=date],input[type=number],input[type=password],select,textarea{font:inherit;padding:8px 10px;border:1px solid var(--line);border-radius:8px;background:#fff;color:var(--txt);outline:none;transition:border-color .15s}
+input:focus,select:focus,textarea:focus{border-color:var(--pink)}
 textarea{width:100%;min-height:90px}label.f{display:block;margin-bottom:14px}label.f span{display:block;font-weight:600;margin-bottom:4px}label.f small{display:block;color:var(--muted);font-weight:400}
 .filters{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-bottom:14px}
 .chat{display:flex;flex-direction:column;gap:10px;max-width:760px}.msg{padding:10px 14px;border-radius:14px;max-width:85%;white-space:pre-wrap}
@@ -232,9 +242,12 @@ textarea{width:100%;min-height:90px}label.f{display:block;margin-bottom:14px}lab
 .legend{display:flex;gap:14px;font-size:12px;color:var(--muted)}.legend i{display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:5px;vertical-align:-1px}
 .pager{display:flex;gap:6px;margin-top:14px}.muted{color:var(--muted)}.right{text-align:right}
 </style></head><body><div class="layout">
-<aside><div class="brand">🎁 Darčekový poradca<small>noelo.sk · admin</small></div>
-<nav><?php foreach ($nav as $k => [$ico, $label]): ?><a href="?p=<?= $k ?>" class="<?= $navKey === $k ? 'on' : '' ?>"><span><?= $ico ?></span><?= h($label) ?></a><?php endforeach; ?></nav>
-<div class="foot">Prihlásený: <?= h($user) ?> · <a href="?p=logout">odhlásiť</a></div></aside>
+<nav class="top"><div class="nav-in">
+<a class="nav-logo" href="?p=prehlad"><img src="https://noelo.sk/img/design/logo-new-v2-sk.png" alt="Noelo.sk"><span class="nav-badge">Darčekový poradca</span></a>
+<span class="nav-div"></span>
+<div class="nav-links"><?php foreach ($nav as $k => [$ico, $label]): ?><a href="?p=<?= $k ?>" class="<?= $navKey === $k ? 'on' : '' ?>"><?= $ico ?> <?= h($label) ?></a><?php endforeach; ?></div>
+<div class="nav-user"><?= h($user) ?><a href="?p=logout">Odhlásiť</a></div>
+</div></nav>
 <main>
 <?php if ($flash): ?><div class="flash"><?= h($flash) ?></div><?php endif; ?>
 <?php if ($feedOld): ?><div class="warn">⚠️ Produktový feed bol naposledy vygenerovaný <b><?= fmt_date($lastImport['feed_last_modified']) ?></b>. Ceny a dostupnosť v poradcovi môžu byť zastarané.</div><?php endif; ?>
