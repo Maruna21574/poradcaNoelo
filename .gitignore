@@ -1,4 +1,4 @@
-config.php
+/config.php
 data/*
 !data/.htaccess
 *.sqlite*
