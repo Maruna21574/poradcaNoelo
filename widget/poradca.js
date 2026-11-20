@@ -100,6 +100,11 @@
 
   /* ---------- chat ---------- */
   function scroll() { log.scrollTop = log.scrollHeight; }
+  // Po odpovedi ukáž začiatok novej správy poradcu (nie koniec so zoznamom produktov)
+  function scrollToLastBot() {
+    var bots = log.querySelectorAll(".dp-bot"), b = bots[bots.length - 1];
+    if (b) log.scrollTop += b.getBoundingClientRect().top - log.getBoundingClientRect().top - 8;
+  }
   function chips(target, items, cls) {
     target.innerHTML = "";
     (items || []).slice(0, 4).forEach(function (t) { var b = el("button", cls || "dp-chip", t); b.type = "button"; b.onclick = function () { ask(t); }; target.appendChild(b); });
@@ -170,7 +175,7 @@
         state.id = d.conversation_id;
         state.items.push({ t: "bot", text: d.reply, quick: d.quick });
         if (d.picks && d.picks.length) state.items.push({ t: "picks", picks: d.picks, quick: d.quick });
-        save(); renderAll();
+        save(); renderAll(); scrollToLastBot();
       })
       .catch(function (e) {
         state.items.push({ t: "err", text: e.message === "rate" ? "Veľa otázok naraz, skúste to prosím o chvíľu." : "Ospravedlňujem sa, niečo sa pokazilo. Skúste to prosím znova.", quick: [text] });
