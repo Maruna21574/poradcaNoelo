@@ -166,6 +166,15 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST') {
             redirect(['p' => 'nastavenia'], 'Import zlyhal: ' . $e->getMessage());
         }
     }
+    if ($action === 'refresh_sales') {
+        try {
+            @set_time_limit(90);
+            $r = Sales::refresh();
+            redirect(['p' => 'nastavenia'], "Predaje obnovené: {$r['rows']} produktov s predajom, {$r['matched']} z nich je v katalógu poradcu.");
+        } catch (Throwable $e) {
+            redirect(['p' => 'nastavenia'], 'Obnova predajov zlyhala: ' . $e->getMessage());
+        }
+    }
     redirect(['p' => $page]);
 }
 
@@ -271,6 +280,10 @@ if ($page === 'prehlad'):
     $unmet = array_slice(Stats::unmet($days), 0, 6);
     $bp = Stats::boostPerformance($days);
     $maxDay = max(1, ...array_values(array_map(fn($d) => $d["conversations"], $daily)));
+    $bestsellers = db()->query("SELECT p.id, p.name, p.image, p.available, s.sold_7, s.sold_30,
+        (SELECT COUNT(*) FROM recommendations r WHERE r.product_id = p.id AND r.created_at >= '" . date('Y-m-d H:i:s', strtotime("-$days days")) . "') recs
+        FROM product_sales s JOIN products p ON p.id = s.product_id WHERE p.active = 1 ORDER BY s.sold_30 DESC LIMIT 10")->fetchAll();
+    $salesUpdated = Settings::get('sales_updated');
 ?>
 <h1>Prehľad</h1><p class="sub">Ako zákazníci používajú poradcu a čo hľadajú.</p>
 <?= $tabs('prehlad') ?>
@@ -306,6 +319,15 @@ if ($page === 'prehlad'):
     <table><tr><th></th><th class="num">Odporučené</th><th class="num">Prekliky</th><th class="num">Úspešnosť</th></tr>
       <?php foreach ([1 => 'Zvýhodnené', 0 => 'Ostatné'] as $b => $l): $r = $bp[$b]; ?><tr><td><?= $l ?></td><td class="num"><?= $r['recs'] ?></td><td class="num"><?= $r['clicks'] ?></td><td class="num"><?= $r['recs'] ? pct(100 * $r['clicks'] / $r['recs']) : '–' ?></td></tr><?php endforeach; ?></table></div>
 </div>
+<div class="card" style="margin-top:16px"><h2>🔥 Najpredávanejšie na noelo.sk <span class="muted" style="font-weight:400;font-size:12px">(posledných 30 dní<?= $salesUpdated ? ', obnovené ' . fmt_date($salesUpdated) : '' ?>)</span>
+    <a class="btn ghost sm" style="float:right" href="?p=produkty&f=best">všetky</a></h2>
+  <?php if ($bestsellers): ?>
+  <table><tr><th></th><th>Produkt</th><th class="num">Predané 30 dní</th><th class="num">Predané 7 dní</th><th class="num">Odporučené poradcom (<?= $days ?> dní)</th></tr>
+  <?php foreach ($bestsellers as $b): ?><tr><td><?php if ($b['image']): ?><img class="thumb" src="<?= h($b['image']) ?>" alt=""><?php endif; ?></td>
+    <td><a href="?p=produkt&id=<?= urlencode((string)$b['id']) ?>"><?= h($b['name']) ?></a><?php if (!$b['available']): ?> <span class="badge b-mute">vypredané</span><?php endif; ?></td>
+    <td class="num"><b><?= (int)$b['sold_30'] ?></b> ks</td><td class="num"><?= (int)$b['sold_7'] ?> ks</td>
+    <td class="num"><?= (int)$b['recs'] ?><?= (int)$b['recs'] === 0 ? ' <span class="badge b-un">neodporúčaný</span>' : '' ?></td></tr><?php endforeach; ?></table>
+  <?php else: ?><p class="muted">Zatiaľ bez dát o predaji. Pripojenie na databázu e-shopu sa nastavuje v <code>config.php</code> (<code>shop_db</code>), stav nájdete v časti <a href="?p=nastavenia">Nastavenia a import</a>.</p><?php endif; ?></div>
 
 <?php /* ================= KONVERZÁCIE ================= */
 elseif ($page === 'konverzacie'):
@@ -393,23 +415,24 @@ elseif ($page === 'produkty'):
     if ($f === 'boost') $where[] = 'o.boost > 0';
     if ($f === 'ex') $where[] = 'o.excluded = 1';
     if ($f === 'margin') { $where[] = 'p.available = 1 AND p.cost IS NOT NULL AND p.price > 0'; }
+    if ($f === 'best') { $where[] = 'p.available = 1 AND s.sold_30 > 0'; }
     $w = implode(' AND ', $where);
-    $order = $f === 'margin' ? '(p.price - p.cost) / p.price DESC' : ($f === 'recs' ? 'recs DESC' : 'COALESCE(o.boost,0) DESC, recs DESC, p.name');
-    $cnt = db()->prepare("SELECT COUNT(*) FROM products p LEFT JOIN product_overrides o ON o.product_id = p.id WHERE $w"); $cnt->execute($params); $total = (int)$cnt->fetchColumn();
-    $st = db()->prepare("SELECT p.*, o.boost, o.boost_until, o.boost_reason, o.excluded,
+    $order = $f === 'margin' ? '(p.price - p.cost) / p.price DESC' : ($f === 'best' ? 's.sold_30 DESC, s.sold_7 DESC' : ($f === 'recs' ? 'recs DESC' : 'COALESCE(o.boost,0) DESC, recs DESC, p.name'));
+    $cnt = db()->prepare("SELECT COUNT(*) FROM products p LEFT JOIN product_overrides o ON o.product_id = p.id LEFT JOIN product_sales s ON s.product_id = p.id WHERE $w"); $cnt->execute($params); $total = (int)$cnt->fetchColumn();
+    $st = db()->prepare("SELECT p.*, o.boost, o.boost_until, o.boost_reason, o.excluded, COALESCE(s.sold_30, 0) sold_30,
         (SELECT COUNT(*) FROM recommendations r WHERE r.product_id = p.id) recs,
         (SELECT COUNT(*) FROM events e WHERE e.product_id = p.id AND e.type = 'click') clicks
-        FROM products p LEFT JOIN product_overrides o ON o.product_id = p.id WHERE $w ORDER BY $order LIMIT 40 OFFSET " . (($pg - 1) * 40));
+        FROM products p LEFT JOIN product_overrides o ON o.product_id = p.id LEFT JOIN product_sales s ON s.product_id = p.id WHERE $w ORDER BY $order LIMIT 40 OFFSET " . (($pg - 1) * 40));
     $st->execute($params);
     $base = ['p' => 'produkty', 'q' => $q, 'f' => $f, 'cat' => $cat];
 ?>
 <h1>Produkty a zvýhodnenie</h1><p class="sub">Povedzte poradcovi, čo má odporúčať častejšie (napr. tovar dlho na sklade) alebo čo neodporúčať vôbec.</p>
 <form class="filters"><input type="hidden" name="p" value="produkty"><input type="search" name="q" value="<?= h($q) ?>" placeholder="Názov, značka alebo ID…">
   <input type="text" name="cat" value="<?= h($cat) ?>" placeholder="Kategória…" style="width:160px">
-  <select name="f"><?php foreach (['avail' => 'Dostupné', 'all' => 'Všetky', 'boost' => 'Zvýhodnené', 'ex' => 'Vylúčené', 'recs' => 'Najviac odporúčané', 'margin' => 'Najvyššia marža'] as $k2 => $l): ?><option value="<?= $k2 ?>" <?= $f === $k2 ? 'selected' : '' ?>><?= $l ?></option><?php endforeach; ?></select>
+  <select name="f"><?php foreach (['avail' => 'Dostupné', 'all' => 'Všetky', 'boost' => 'Zvýhodnené', 'ex' => 'Vylúčené', 'best' => '🔥 Bestsellery (predaj 30 dní)', 'recs' => 'Najviac odporúčané', 'margin' => 'Najvyššia marža'] as $k2 => $l): ?><option value="<?= $k2 ?>" <?= $f === $k2 ? 'selected' : '' ?>><?= $l ?></option><?php endforeach; ?></select>
   <button class="btn">Hľadať</button><span class="muted"><?= $total ?> produktov</span></form>
 <div class="card" style="padding:6px 8px"><table>
-<tr><th></th><th>Produkt</th><th class="num">Cena</th><th class="num">Marža</th><th>Vek · pre</th><th class="num">Odporuč.</th><th class="num">Kliky</th><th>Zvýhodnenie</th></tr>
+<tr><th></th><th>Produkt</th><th class="num">Cena</th><th class="num">Marža</th><th>Vek · pre</th><th class="num">Predaj 30 d</th><th class="num">Odporuč.</th><th class="num">Kliky</th><th>Zvýhodnenie</th></tr>
 <?php foreach ($st->fetchAll() as $p):
     $margin = ($p['cost'] !== null && $p['price'] > 0) ? 100 * ($p['price'] - $p['cost']) / $p['price'] : null;
     $active = (int)$p['boost'] > 0 && (!$p['boost_until'] || $p['boost_until'] >= date('Y-m-d')); ?>
@@ -418,6 +441,7 @@ elseif ($page === 'produkty'):
     <?php if (!$p['available']): ?> <span class="badge b-mute">vypredané</span><?php endif; ?><?php if ($p['excluded']): ?> <span class="badge b-ex">vylúčený</span><?php endif; ?></td>
   <td class="num"><?= price_fmt((float)$p['price']) ?></td><td class="num"><?= $margin === null ? '–' : pct($margin) ?></td>
   <td class="muted"><?= $p['age_min'] === null ? '?' : h($p['age_min'] . '–' . ($p['age_max'] ?? '')) ?> · <?= h($p['gender'] ?? '?') ?></td>
+  <td class="num"><?= (int)$p['sold_30'] > 0 ? (int)$p['sold_30'] . ' ks' : '<span class="muted">–</span>' ?></td>
   <td class="num"><?= $p['recs'] ?></td><td class="num"><?= $p['clicks'] ?></td>
   <td><form method="post" class="inline" action="<?= url($base + ['pg' => $pg]) ?>"><?= csrf_field() ?><input type="hidden" name="action" value="quick_boost"><input type="hidden" name="id" value="<?= h($p['id']) ?>">
     <select name="boost" onchange="this.form.submit()"><?php foreach (BOOST_LABELS as $b => $l): ?><option value="<?= $b ?>" <?= ($active ? (int)$p['boost'] : 0) === $b ? 'selected' : '' ?>><?= $b ? '⭐ ' . $l : $l ?></option><?php endforeach; ?></select></form>
@@ -561,6 +585,16 @@ elseif ($page === 'nastavenia'):
   <p>Aktívnych produktov: <b><?= (int)$prodStats['total'] ?></b>, dostupných: <b><?= (int)$prodStats['avail'] ?></b>, označených AI: <b><?= (int)$prodStats['tagged'] ?></b></p>
   <p class="muted">Zdroj: <?= config('feed.type') === 'crawl' ? 'priamo z webu noelo.sk (feed googleMerchant.xml je zo 3. 10. 2022)' : h((string)config('feed.url')) ?></p>
   <form method="post"><?= csrf_field() ?><input type="hidden" name="action" value="run_import"><button class="btn">Spustiť import teraz</button> <span class="muted">Bežne beží automaticky (cron).</span></form>
+  <h2 style="margin-top:20px">Predaje (bestsellery)</h2>
+  <?php $sn = (int)db()->query('SELECT COUNT(*) FROM product_sales WHERE sold_30 > 0')->fetchColumn(); $su = Settings::get('sales_updated'); ?>
+  <?php if (Sales::enabled()): ?>
+    <p>Pripojenie na databázu e-shopu: <span class="badge b-ok">nastavené</span> · posledná obnova: <b><?= $su ? fmt_date($su) : 'ešte neprebehla' ?></b> · produktov s predajom za 30 dní: <b><?= $sn ?></b></p>
+    <p class="muted">Obnova beží automaticky približne každých <?= (int)(config('sales_refresh_hours') ?: 6) ?> hodín. Poradca podľa nej odporúča bestsellery a zákazník ich nájde cez tlačidlo „Čo sa najviac kupuje".</p>
+    <form method="post"><?= csrf_field() ?><input type="hidden" name="action" value="refresh_sales"><button class="btn ghost">Obnoviť predaje teraz</button></form>
+  <?php else: ?>
+    <p>Pripojenie na databázu e-shopu: <span class="badge b-mute">nenastavené</span></p>
+    <p class="muted">Bestsellery sa zapnú po vyplnení <code>shop_db</code> v <code>config.php</code> na serveri (najlepšie používateľ len na čítanie).</p>
+  <?php endif; ?>
   <h2 style="margin-top:20px">Posledné importy</h2><table><tr><th>Kedy</th><th>Stav</th><th class="num">Produktov</th><th>Feed vygenerovaný</th></tr>
   <?php foreach ($runs as $r): ?><tr><td><?= fmt_date($r['started_at']) ?></td><td><span class="badge <?= $r['status'] === 'ok' ? 'b-ok' : ($r['status'] === 'error' ? 'b-un' : 'b-mute') ?>"><?= h($r['status']) ?></span></td><td class="num"><?= (int)$r['total'] ?></td><td><?= fmt_date($r['feed_last_modified']) ?></td></tr>
   <?php if ($r['message']): ?><tr><td colspan="4" class="muted" style="font-size:12.5px"><?= h($r['message']) ?></td></tr><?php endif; ?><?php endforeach; ?>
