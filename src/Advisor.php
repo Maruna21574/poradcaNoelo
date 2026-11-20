@@ -169,6 +169,25 @@ TXT;
         ];
     }
 
+    /**
+     * Zavolá model. Ak hlavný model zlyhá (preťaženie, výpadok), skúsi raz záložný model
+     * (config 'model_fallback', predvolene Haiku), aby zákazník dostal odpoveď namiesto chyby.
+     */
+    private static function callModel(array $payload): array
+    {
+        try {
+            return Claude::messages($payload);
+        } catch (RuntimeException $e) {
+            $fallback = (string)(config('model_fallback') ?: 'claude-haiku-5-5');
+            $code = (int)$e->getCode();
+            // Chyby, ktoré záložný model nevyrieši (zlý kľúč, zlá požiadavka, chýba kľúč), posielame ďalej
+            if ($fallback === '' || $fallback === $payload['model'] || in_array($code, [400, 401, 402, 403], true) || str_contains($e->getMessage(), 'API kľúč')) throw $e;
+            error_log('[poradca] záložný model po chybe: ' . $e->getMessage());
+            $payload['model'] = $fallback;
+            return Claude::messages($payload);
+        }
+    }
+
     /** Spustí model s nástrojmi a vráti spracovanú odpoveď. */
     public static function runModel(array $history): array
     {
@@ -197,7 +216,7 @@ TXT;
             if ($round === self::MAX_TOOL_ROUNDS) {
                 $payload['tool_choice'] = ['type' => 'tool', 'name' => 'odpovedz_zakaznikovi'];
             }
-            $res = Claude::messages($payload);
+            $res = self::callModel($payload);
             $tokensIn += (int)($res['usage']['input_tokens'] ?? 0) + (int)($res['usage']['cache_read_input_tokens'] ?? 0) + (int)($res['usage']['cache_creation_input_tokens'] ?? 0);
             $tokensOut += (int)($res['usage']['output_tokens'] ?? 0);
 

@@ -169,8 +169,16 @@
     state.items.push({ t: "user", text: text }); save();
     log.appendChild(el("div", "dp-m dp-user", text));
     var dots = el("div", "dp-dots"); dots.innerHTML = "<i></i><i></i><i></i>"; log.appendChild(dots); scroll();
-    post("/chat.php", { conversation_id: state.id, message: text, page: location.href })
-      .then(function (r) { if (r.status === 429) throw new Error("rate"); if (!r.ok) throw new Error("http"); return r.json(); })
+    // Pri dočasnej chybe (sieť, preťaženie) skúsi to raz znova, až potom zobrazí chybu
+    function send(attempt) {
+      return post("/chat.php", { conversation_id: state.id, message: text, page: location.href })
+        .then(function (r) { if (r.status === 429) throw new Error("rate"); if (!r.ok) throw new Error("http"); return r.json(); })
+        .catch(function (e) {
+          if (e.message === "rate" || attempt >= 2) throw e;
+          return new Promise(function (res) { setTimeout(res, 1500); }).then(function () { return send(attempt + 1); });
+        });
+    }
+    send(1)
       .then(function (d) {
         state.id = d.conversation_id;
         state.items.push({ t: "bot", text: d.reply, quick: d.quick });

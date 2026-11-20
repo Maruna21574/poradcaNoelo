@@ -7,6 +7,10 @@ declare(strict_types=1);
  */
 require_once dirname(__DIR__) . '/src/bootstrap.php';
 
+// Rozhovor s modelom môže trvať aj viac kôl hľadania – nech ho hosting nepreruší po 30 s
+@set_time_limit(120);
+ignore_user_abort(true);
+
 if (!cors()) { json_out(['error' => 'forbidden'], 403); exit; }
 if (($_SERVER['REQUEST_METHOD'] ?? '') !== 'POST') { json_out(['error' => 'method'], 405); exit; }
 if (Settings::get('enabled') !== '1') { json_out(['error' => 'disabled'], 503); exit; }
@@ -36,5 +40,7 @@ try {
     json_out(['error' => 'bad_request'], 400);
 } catch (Throwable $e) {
     error_log('[poradca] ' . $e->getMessage());
+    // Chyby si ukladáme aj do súboru v data/ (systémový log býva na hostingoch nedostupný)
+    @file_put_contents(rtrim((string)config('data_dir'), '/') . '/errors.log', '[' . now() . '] ' . get_class($e) . ': ' . mb_substr($e->getMessage(), 0, 400) . "\n", FILE_APPEND | LOCK_EX);
     json_out(['error' => 'upstream'], 502);
 }

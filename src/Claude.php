@@ -23,7 +23,8 @@ final class Claude
             curl_setopt_array($ch, [
                 CURLOPT_POST => true,
                 CURLOPT_RETURNTRANSFER => true,
-                CURLOPT_TIMEOUT => 60,
+                CURLOPT_CONNECTTIMEOUT => 10,
+                CURLOPT_TIMEOUT => 40,
                 CURLOPT_HTTPHEADER => [
                     'content-type: application/json',
                     'x-api-key: ' . $key,
