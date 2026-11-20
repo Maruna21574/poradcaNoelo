@@ -23,6 +23,16 @@ $test = function (string $url): string {
 };
 $c = $test('https://www.noelo.sk/'); $ok('Server sa dostane na www.noelo.sk', $c === '200', "HTTP $c");
 $c = $test('https://api.anthropic.com/v1/messages'); $ok('Server sa dostane na api.anthropic.com', $c !== '0', "HTTP $c (405 je v poriadku)");
+$shop = (array)($cfg['shop_db'] ?? []);
+$ok('Bestsellery: rozšírenie mysqli', extension_loaded('mysqli'), 'potrebné len pre predaje z databázy e-shopu');
+$ok('Bestsellery: shop_db je nastavené', !empty($shop['host']) && !empty($shop['user']) && !empty($shop['db']), 'voliteľné');
+if (is_file($dir . '/poradca.sqlite')) {
+    try {
+        $p = new PDO('sqlite:' . $dir . '/poradca.sqlite');
+        $ns = (int)$p->query('SELECT COUNT(*) FROM product_sales WHERE sold_30 > 0')->fetchColumn();
+        $ok('Bestsellery: načítané predaje', $ns > 0, "$ns produktov s predajom (php cron/import.php --no-tag)");
+    } catch (Throwable $e) { $ok('Bestsellery: načítané predaje', false, 'tabuľka sa vytvorí pri prvom spustení'); }
+}
 if (is_file($dir . '/poradca.sqlite')) {
     $pdo = new PDO('sqlite:' . $dir . '/poradca.sqlite');
     $n = (int)$pdo->query('SELECT COUNT(*) FROM products WHERE active = 1 AND available = 1')->fetchColumn();

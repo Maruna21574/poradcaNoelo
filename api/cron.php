@@ -16,6 +16,9 @@ $log = function (string $m) { echo '[' . date('H:i:s') . "] $m\n"; @ob_flush(); 
 try {
     $r = FeedImporter::run(null, $log, 50);
     $log("Produktov: {$r['total']}, dostupných: {$r['available']}");
+    if (Sales::due()) {
+        try { Sales::refresh($log); } catch (Throwable $e) { $log('CHYBA predajov: ' . $e->getMessage()); }
+    }
     $n = Tagger::run(120, $log);
     $log("AI označilo $n produktov.");
 } catch (Throwable $e) {

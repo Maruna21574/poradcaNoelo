@@ -10,7 +10,7 @@ final class Settings
         'enabled' => '1',
         'assistant_name' => 'Darčekový poradca',
         'greeting' => 'Dobrý deň! 🎁 Pomôžem vám vybrať darček z ponuky noelo.sk. Pre koho ho hľadáte a koľko má rokov?',
-        'quick_start' => "Darček pre 8-ročné dievča\nPre 5-ročného chlapca do 30 €\nPre bábätko\nNiečo na pohyb vonku",
+        'quick_start' => "Darček pre 8-ročné dievča\nPre 5-ročného chlapca do 30 €\nPre bábätko\nČo sa najviac kupuje 🔥",
         'extra_instructions' => '',
         'max_picks' => '4',
         'salt' => '',

@@ -7,7 +7,7 @@ declare(strict_types=1);
 final class Db
 {
     private static ?PDO $pdo = null;
-    private const SCHEMA_VERSION = 2;
+    private const SCHEMA_VERSION = 3;
 
     public static function get(): PDO
     {
@@ -39,8 +39,14 @@ final class Db
     {
         $v = (int)$pdo->query('PRAGMA user_version')->fetchColumn();
         if ($v >= self::SCHEMA_VERSION) return;
+        if ($v === 2) {
+            self::migrateV3($pdo);
+            $pdo->exec('PRAGMA user_version = ' . self::SCHEMA_VERSION);
+            return;
+        }
         if ($v === 1) {
             self::migrateV2($pdo);
+            self::migrateV3($pdo);
             $pdo->exec('PRAGMA user_version = ' . self::SCHEMA_VERSION);
             return;
         }
@@ -170,7 +176,21 @@ CREATE TABLE IF NOT EXISTS rate_limits (
 );
 SQL);
         self::migrateV2($pdo);
+        self::migrateV3($pdo);
         $pdo->exec('PRAGMA user_version = ' . self::SCHEMA_VERSION);
+    }
+
+    /** v3: predaje produktov z databázy e-shopu (bestsellery) */
+    private static function migrateV3(PDO $pdo): void
+    {
+        $pdo->exec(<<<SQL
+CREATE TABLE IF NOT EXISTS product_sales (
+    product_id TEXT PRIMARY KEY,
+    sold_7 INTEGER NOT NULL DEFAULT 0,         -- kusov za posledných 7 dní
+    sold_30 INTEGER NOT NULL DEFAULT 0,        -- kusov za posledných 30 dní
+    updated_at TEXT NOT NULL
+);
+SQL);
     }
 
     /** v2: ukážkové konverzácie a podrobnosti z načítania webu */

@@ -33,6 +33,18 @@ return [
         // 'categories' => ['lego' => 'Lego', ...],   // vlastný zoznam kategórií (inak predvolený zoznam darčekových kategórií)
     ],
 
+    // Predaje z databázy e-shopu (bestsellery). Nechajte prázdne, ak sa nepoužíva.
+    // ODPORÚČANIE: vytvorte samostatného MySQL používateľa len s právom SELECT na tabuľky orders a ordereditems.
+    // Tieto údaje patria LEN do config.php na serveri, nikdy do gitu.
+    'shop_db' => [
+        'host' => '',      // napr. db.r2.websupport.sk
+        'port' => 3306,
+        'user' => '',
+        'pass' => '',
+        'db'   => '',
+    ],
+    'sales_refresh_hours' => 6,     // ako často obnoviť predaje
+
     // Adresa e-shopu (na doplnenie relatívnych URL)
     'shop_url' => 'https://www.noelo.sk',
 

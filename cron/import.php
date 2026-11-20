@@ -23,6 +23,10 @@ try {
     exit(1);
 }
 
+if (Sales::enabled()) {
+    try { Sales::refresh($log); } catch (Throwable $e) { $log('CHYBA predajov: ' . $e->getMessage()); }
+}
+
 if (!isset($opts['no-tag'])) {
     $n = Tagger::run((int)($opts['tag-limit'] ?? 2000), $log);
     $log("AI označilo $n produktov.");

@@ -31,6 +31,9 @@ final class Maintenance
             @set_time_limit($seconds + 30);
             $deadline = time() + $seconds;
             if (self::importNeeded()) FeedImporter::run(null, null, max(5, $deadline - time()));
+            if (time() < $deadline - 12 && Sales::due()) {
+                try { Sales::refresh(); } catch (Throwable $e) { error_log('[poradca] predaje: ' . $e->getMessage()); Settings::set('sales_updated', now()); }
+            }
             if (time() < $deadline - 8 && (string)config('anthropic_api_key') !== '') Tagger::run(40);
         } catch (Throwable $e) {
             error_log('[poradca] údržba: ' . $e->getMessage());

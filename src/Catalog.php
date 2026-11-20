@@ -25,8 +25,10 @@ final class Catalog
             SELECT p.id, p.name, p.brand, p.category, p.description, p.url, p.image, p.price, p.availability_text,
                    p.age_min, p.age_max, p.gender, p.interests, p.gift_score, p.search_text, p.first_seen_at,
                    o.boost AS o_boost, o.boost_until AS o_until, o.ai_note, o.excluded,
-                   o.age_min AS o_age_min, o.age_max AS o_age_max, o.gender AS o_gender
+                   o.age_min AS o_age_min, o.age_max AS o_age_max, o.gender AS o_gender,
+                   COALESCE(s.sold_7, 0) AS sold_7, COALESCE(s.sold_30, 0) AS sold_30
             FROM products p LEFT JOIN product_overrides o ON o.product_id = p.id
+                            LEFT JOIN product_sales s ON s.product_id = p.id
             WHERE p.active = 1 AND p.available = 1 AND p.price IS NOT NULL
         ')->fetchAll();
         $rules = db()->query('SELECT kind, value, boost, until FROM boost_rules')->fetchAll();
@@ -62,6 +64,8 @@ final class Catalog
                 'gift_score' => $r['gift_score'] === null ? null : (int)$r['gift_score'],
                 'ai_note' => (string)($r['ai_note'] ?? ''),
                 'boost' => $boost,
+                'sold_7' => (int)$r['sold_7'],
+                'sold_30' => (int)$r['sold_30'],
                 'search_text' => $r['search_text'],
                 'first_seen_at' => $r['first_seen_at'],
             ];
@@ -108,6 +112,8 @@ final class Catalog
         $max = isset($q['cena_do']) && $q['cena_do'] !== null ? (float)$q['cena_do'] : null;
         $cat = isset($q['kategoria']) ? normalize_text((string)$q['kategoria']) : '';
         $limit = max(1, min(30, (int)($q['limit'] ?? 20)));
+        // Bestsellery: poradie podľa predaja za posledných 30 dní (ak sú dáta o predaji k dispozícii)
+        $bestsellers = (($q['zoradit'] ?? '') === 'bestsellery') && self::hasSalesData();
 
         $results = [];
         foreach (self::available() as $p) {
@@ -115,6 +121,8 @@ final class Catalog
             if ($max !== null && $p['price'] > $max) continue;
             if ($cat !== '' && !str_contains(normalize_text($p['category']), $cat)) continue;
             if ($gender !== '' && $p['gender'] !== 'unisex' && $p['gender'] !== $gender) continue;
+
+            if ($bestsellers && $p['sold_30'] <= 0) continue;
 
             $ageFactor = 1.0;
             if ($age !== null) {
@@ -146,12 +154,25 @@ final class Catalog
                 $score = 1 + (int)($p['gift_score'] ?? 1);
             }
             $score *= $ageFactor;
+            if ($bestsellers) {
+                // pri bestselleroch rozhoduje predaj (týždeň váži viac, aby vyšli aktuálne hity); vek a záujmy len dopĺňajú
+                $score = ($p['sold_30'] + 2 * $p['sold_7']) * min(1.0, $ageFactor);
+            } else {
+                // jemné zvýhodnenie obľúbených produktov (max. +40 %), aby neprebilo vek, záujmy ani rozpočet
+                $score *= 1 + min(0.4, 0.08 * log(1 + $p['sold_30']));
+            }
             $score = $score * (1 + 0.35 * $p['boost']) + 0.5 * $p['boost'];
             $p['_score'] = round($score, 3);
             $results[] = $p;
         }
         usort($results, fn($a, $b) => [$b['_score'], $b['first_seen_at']] <=> [$a['_score'], $a['first_seen_at']]);
         return array_slice($results, 0, $limit);
+    }
+
+    private static function hasSalesData(): bool
+    {
+        foreach (self::available() as $p) if ($p['sold_30'] > 0) return true;
+        return false;
     }
 
     private static function anyStartsWith(array $words, string $stem): bool
@@ -176,6 +197,7 @@ final class Catalog
         ];
         if ($p['interests']) $parts[] = 'záujmy: ' . $p['interests'];
         if ($p['availability']) $parts[] = 'dostupnosť: ' . $p['availability'];
+        if ($p['sold_30'] > 0) $parts[] = 'predaj za 30 dní: ' . $p['sold_30'] . ' ks' . ($p['sold_7'] > 0 ? ', za 7 dní: ' . $p['sold_7'] . ' ks' : '');
         if ($p['boost'] > 0) $parts[] = 'ODPORÚČA OBCHOD' . ($p['boost'] >= 2 ? ' (silno)' : '');
         if ($p['ai_note'] !== '') $parts[] = 'poznámka obchodu: ' . $p['ai_note'];
         $desc = trim(mb_substr(preg_replace('/\s+/', ' ', strip_tags($p['description'])) ?? '', 0, 160));

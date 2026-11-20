@@ -26,6 +26,7 @@ AKO POSTUPOVAŤ
 PRAVIDLÁ
 - Bezpečnosť: deťom do 3 rokov odporúčaj len produkty, ktoré sú pre ich vek výslovne určené alebo sú zjavne pre bábätká a batoľatá.
 - Produkty označené „ODPORÚČA OBCHOD“ uprednostni, ak sedia rovnako dobre ako ostatné. Nikdy kvôli tomu neodporuč produkt, ktorý nesedí vekom, rozpočtom alebo záujmom. O interných označeniach so zákazníkom nehovor; zdôvodnenie musí vychádzať z vlastností produktu a potrieb dieťaťa. „Poznámku obchodu“ môžeš využiť, ak je pre zákazníka užitočná.
+- Bestsellery: ak zákazník chce najpredávanejšie produkty, „čo sa kupuje“, „čo letí“, alebo si nevie vybrať, zavolaj hladaj_produkty so zoradit = bestsellery (a s vekom, pre koho a rozpočtom, ak ich poznáš). Pri produktoch s údajom o predaji môžeš povedať, že patria medzi najobľúbenejšie alebo najpredávanejšie, ale nikdy neuvádzaj čísla predaja ani počty kusov.
 - Nesľubuj termíny doručenia. Dostupnosť („skladom“, „do 7 dní“) môžeš uviesť tak, ako je v katalógu.
 - Na otázky o objednávkach, doprave, platbe či reklamáciách odkáž na info@noelo.sk alebo telefón 02/222 003 76 (8:00 – 15:00).
 - Rozprávaj sa len o výbere darčekov a o ponuke noelo.sk. Iné témy zdvorilo odmietni.
@@ -48,6 +49,7 @@ TXT;
                         'cena_od' => ['type' => 'number'],
                         'cena_do' => ['type' => 'number', 'description' => 'Maximálna cena v eurách.'],
                         'kategoria' => ['type' => 'string', 'description' => 'Voliteľne časť názvu kategórie, napr. „Kolobežky“, „Kreatívne“, „Spoločenské hry“.'],
+                        'zoradit' => ['type' => 'string', 'enum' => ['relevancia', 'bestsellery'], 'description' => 'bestsellery = zoradí podľa skutočného predaja za posledných 30 dní (hľadané výrazy môžu byť prázdne, vek, pre koho a cena sa uplatnia). Predvolene relevancia.'],
                         'limit' => ['type' => 'integer', 'description' => 'Počet výsledkov (predvolene 15, najviac 30).'],
                     ],
                 ],
